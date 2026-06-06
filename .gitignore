@@ -3,9 +3,12 @@ venv/
 desktop.ini
 .vscode/
 .idea/
+build/
+dist/
 RLBot_Core_Interface.dll
 *.iml
 rlbot.cfg
+rlbot.toml
 RefreshEnv.cmd
 .git/
 *.pdb
