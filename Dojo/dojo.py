@@ -4,7 +4,8 @@ import string
 
 from rlbot.flat import GamePacket, RespawnTimeMutator
 from rlbot.managers import Script
-from rlbot_flatbuffers import MatchPhase, ScoringRuleMutator
+from rlbot_flatbuffers import MatchPhase, ScoringRuleMutator, TextHAlign, DebugRendering
+from rlbot_flatbuffers.rlbot_flatbuffers import TextVAlign
 
 from scenario import CarStateModel, PhysicsModel, BallStateModel, Vec3, RotatorModel, ScenarioModel
 from input_management.hotkey_binding_menu import HotkeyBindingMenu
@@ -112,10 +113,16 @@ class Dojo(Script):
         self.game_state.pause_time = constants.DEFAULT_PAUSE_TIME
 
     def handle_packet(self, packet: GamePacket):
-        if len(packet.balls) == 0 or packet.match_info.match_phase not in [MatchPhase.Active, MatchPhase.Kickoff]:
-            return
-
         self.renderer.begin_rendering()
+        if len(packet.players) != 2 or packet.players[-1].is_bot:  # Note: Human is always last index
+            self.renderer.draw_string_2d("Dojo error: Expected 2 players (1 human + 1 bot)!", 860, 300, 2,
+                                         self.renderer.red, h_align=TextHAlign.Center, v_align=TextVAlign.Center)
+        elif self.match_config.enable_rendering != DebugRendering.AlwaysOff:
+            print("Dojo error: Requires debug rendering!")
+
+        if len(packet.balls) == 0 or packet.match_info.match_phase not in [MatchPhase.Active, MatchPhase.Kickoff]:
+            self.renderer.end_rendering()
+            return
 
         # Update game state
         self._update_game_state(packet)

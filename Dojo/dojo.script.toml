@@ -1,12 +1,12 @@
 [settings]
 agent_id = "SmoothRik/RLDojo"
 name = "RLDojo"
-#run_command = "..\\venv\\Scripts\\python dojo.py"
+run_command = "..\\venv\\Scripts\\python dojo.py"
 logo_file = "logo.png"
 
 [details]
 developer = "SmoothRik"
-description = "Train against bots. Requires: State Setting, Rendering, Respawn time mutator: Disable goal reset."
+description = "Train against bots. Requires: State Setting, Rendering, Scoring Rule mutator: Disabled."
 fun_fact = "Inspired by 50/50 Minigame."
 source_link = "https://github.com/ecolsen7/Dojo"
 language = "Python"
