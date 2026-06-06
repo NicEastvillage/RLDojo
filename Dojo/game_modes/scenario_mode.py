@@ -1,9 +1,10 @@
 import numpy as np
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator
+from rlbot.flat import MatchPhase, DesiredGameState, DesiredBallState, DesiredCarState, DesiredPhysics, Vector3Partial, RotatorPartial
 
+from scenario import ScenarioModel
 from .base_mode import BaseGameMode
-from game_state import ScenarioPhase, CarIndex, CUSTOM_MODES
-from scenario import Scenario, OffensiveMode, DefensiveMode
+from dojo_state import ScenarioPhase, CarIndex, CUSTOM_MODES
+from scenario_gen import OffensiveMode, DefensiveMode, ScenarioGenerator
 from constants import BACK_WALL, GOAL_DETECTION_THRESHOLD, BALL_GROUND_THRESHOLD, FREE_GOAL_TIMEOUT
 from playlist import PlaylistRegistry, PlayerRole
 import utils
@@ -15,13 +16,14 @@ class ScenarioMode(BaseGameMode):
     
     def __init__(self, game_state, game_interface):
         super().__init__(game_state, game_interface)
-        self.rlbot_game_state = None
+        self.scenario: ScenarioModel = None
+        self.scenario_gen = ScenarioGenerator()
         self.prev_time = 0
         self.playlist_registry = None  # Will be set via set_playlist_registry
         self.current_playlist = None
         self.last_menu_phase_time = 0
         self.custom_mode_active = False
-        self.custom_scenario = None
+        self.custom_scenario: CustomScenario = None
         self.custom_trial_active = False
         self.trial_start_time = 0
             
@@ -86,9 +88,13 @@ class ScenarioMode(BaseGameMode):
         if handler:
             handler(packet)
     
-    def get_rlbot_game_state(self):
-        """Get the current RLBot game state"""
-        return self.rlbot_game_state
+    def get_scenario(self) -> ScenarioModel:
+        """Get the current scenario"""
+        return self.scenario
+
+    def apply_scenario(self):
+        """Apply the scenario to RLBot"""
+        self.game_interface.send_msg(self.scenario.to_rlbot_desired(self.game_state.human_offense))
     
     def _handle_init_phase(self, packet):
         """Handle initialization phase"""
@@ -105,10 +111,10 @@ class ScenarioMode(BaseGameMode):
     
     def _handle_menu_phase(self, packet):
         """Handle menu phase - freeze game state"""
-        if self.rlbot_game_state:
-            self.set_game_state(self.rlbot_game_state)
+        if self.scenario:
+            self.apply_scenario()
         self.last_menu_phase_time = time.time()
-            
+
     def _handle_menu_exiting_phase(self, packet):
         """Unfreeze game state after a 3 second countdown"""
 
@@ -125,10 +131,8 @@ class ScenarioMode(BaseGameMode):
             # Reset prev time so we don't instantly timeout 
             self.prev_time = self.game_state.cur_time
         else:
-            self.game_interface.renderer.begin_rendering()
-            self.game_interface.renderer.draw_string_2d(850, 200, 15, 15, str(3 - int(time.time() - self.last_menu_phase_time)), self.game_interface.renderer.white())
-            self.game_interface.renderer.end_rendering()
-            self.set_game_state(self.rlbot_game_state)
+            self.game_interface.renderer.draw_string_2d(str(3 - int(time.time() - self.last_menu_phase_time)), 850, 200, 15, self.game_interface.renderer.white)
+            self.apply_scenario()
     
     def _handle_paused_phase(self, packet):
         """Handle paused phase - wait before starting scenario"""
@@ -141,11 +145,9 @@ class ScenarioMode(BaseGameMode):
 
         # Process countdown
         time_elapsed = self.game_state.cur_time - self.prev_time
-        if (time_elapsed < self.game_state.pause_time or 
-            self.goal_scored(packet) or 
-            packet.game_info.is_kickoff_pause):
-            if self.rlbot_game_state:
-                self.set_game_state(self.rlbot_game_state)
+        if time_elapsed < self.game_state.pause_time:
+            if self.scenario:
+                self.apply_scenario()
         else:
             self.game_state.game_phase = ScenarioPhase.ACTIVE
     
@@ -155,17 +157,12 @@ class ScenarioMode(BaseGameMode):
         if self.game_state.disable_goal_reset:
             if self._check_ball_in_goal(packet):
                 return
-        
-        # Handle kickoff pause
-        if packet.game_info.is_kickoff_pause:
-            self.game_state.game_phase = ScenarioPhase.SETUP
-            return
-        
+
         # Handle timeout and manual reset
         time_elapsed = self.game_state.cur_time - self.prev_time
         timed_out = time_elapsed > self.game_state.timeout and self.game_state.enable_timeouts
         if timed_out or self.game_state.manual_reset_requested:
-            if (packet.game_ball.physics.location.z < BALL_GROUND_THRESHOLD
+            if (packet.balls[0].physics.location.z < BALL_GROUND_THRESHOLD
                 or not self.game_state.rule_zero_mode
                 or self.game_state.manual_reset_requested):
                 self.game_state.manual_reset_requested = False
@@ -175,8 +172,8 @@ class ScenarioMode(BaseGameMode):
     
     def _handle_custom_phase(self, packet):
         """Handle custom sandbox phases"""
-        if self.rlbot_game_state:
-            self.set_game_state(self.rlbot_game_state)
+        if self.scenario:
+            self.apply_scenario()
             
     def _handle_custom_trial_phase(self, packet):
         if not self.custom_trial_active:
@@ -195,9 +192,9 @@ class ScenarioMode(BaseGameMode):
         if scenario_config and not is_custom:
             self.game_state.offensive_mode = scenario_config.offensive_mode
             self.game_state.defensive_mode = scenario_config.defensive_mode
-            self.game_state.player_offense = (scenario_config.player_role == PlayerRole.OFFENSE)
+            self.game_state.human_offense = (scenario_config.player_role == PlayerRole.OFFENSE)
         elif scenario_config and is_custom:
-            self.custom_scenario = scenario_config
+            self.custom_scenario = scenario_config  # Not a config but a CustomScenario instance
             self.custom_mode_active = True
             
     def _set_next_game_state(self):
@@ -211,44 +208,47 @@ class ScenarioMode(BaseGameMode):
                 boost_range = self.current_playlist.settings.boost_range
                 print(f"Using playlist boost range: {boost_range}")
             
-            scenario = Scenario(self.game_state.offensive_mode, self.game_state.defensive_mode, boost_range=boost_range)
-            if self.game_state.player_offense:
-                scenario.Mirror()
+            self.scenario = self.scenario_gen.generate(self.game_state.offensive_mode, self.game_state.defensive_mode, boost_range=boost_range)
+            is_human_on_offense = self.scenario.offensive_team == self.game_state.human_team
+            if self.game_state.human_offense != is_human_on_offense:
+                self.scenario.mirror()
             
-            self.game_state.scenario_history.append(scenario)
+            self.game_state.scenario_history.append(self.scenario)
             self.game_state.freeze_scenario_index = len(self.game_state.scenario_history) - 1
+
+        elif self.custom_mode_active:
+            self.scenario = self.custom_scenario.scenario
+
         else:
-            if self.custom_mode_active:
-                scenario = Scenario.FromGameState(self.custom_scenario.to_rlbot_game_state())
-            else:
-                scenario = self.game_state.scenario_history[self.game_state.freeze_scenario_index]
+            self.scenario = self.game_state.scenario_history[self.game_state.freeze_scenario_index]
         
-        self.rlbot_game_state = scenario.GetGameState()
-        self.set_game_state(self.rlbot_game_state)
+        self.apply_scenario()
     
     def _check_ball_in_goal(self, packet) -> bool:
         """Check if ball is in goal and award points accordingly"""
-        ball_y = packet.game_ball.physics.location.y
+        ball_y = packet.balls[0].physics.location.y
         
-        
-        # Check if ball is in blue goal (back wall is blue)
-        # Bot scored
-        if ball_y < BACK_WALL - GOAL_DETECTION_THRESHOLD:
-            self.game_state.bot_score += 1
+        # Check if ball is in blue goal (back wall is orange)
+        if ball_y < -BACK_WALL - GOAL_DETECTION_THRESHOLD:
+            if self.game_state.human_team == 0:
+                self.game_state.human_score += 1
+            else:
+                self.game_state.bot_score += 1
             self.game_state.game_phase = ScenarioPhase.SETUP
             return True
         
         # Check if ball is in orange goal (negate back wall)
-        # Human scored
-        elif ball_y > (-BACK_WALL + GOAL_DETECTION_THRESHOLD):
-            self.game_state.human_score += 1
+        elif ball_y > BACK_WALL + GOAL_DETECTION_THRESHOLD:
+            if self.game_state.human_team == 0:
+                self.game_state.human_score += 1
+            else:
+                self.game_state.bot_score += 1
             self.game_state.game_phase = ScenarioPhase.SETUP
             return True
         
         # Check for actual goal scored
-        if self.goal_scored(packet):
-            team_scored = self.get_team_scored(packet)
-            if team_scored == CarIndex.HUMAN.value:
+        if self.game_state.team_that_scored_last_tick is not None:
+            if self.game_state.team_that_scored_last_tick == self.game_state.human_team:
                 self.game_state.human_score += 1
             else:
                 self.game_state.bot_score += 1
@@ -259,7 +259,7 @@ class ScenarioMode(BaseGameMode):
     
     def _award_defensive_goal(self):
         """Award a goal to the defensive team"""
-        if self.game_state.player_offense:
+        if self.game_state.human_offense:
             self.game_state.bot_score += 1
         else:
             self.game_state.human_score += 1 

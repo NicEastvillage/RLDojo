@@ -9,7 +9,7 @@ import json
 import os
 from typing import List, Dict, Any, Optional, Tuple
 from playlist import Playlist, ScenarioConfig, PlaylistSettings, PlayerRole
-from scenario import OffensiveMode, DefensiveMode
+from scenario_gen import OffensiveMode, DefensiveMode
 from menu import MenuRenderer, UIElement
 from pydantic import BaseModel, Field, ValidationError
 from custom_scenario import CustomScenario, get_custom_scenarios
@@ -283,6 +283,7 @@ class CustomPlaylistManager:
 
 def _get_custom_playlists_path():
     appdata_path = os.path.expandvars("%APPDATA%")
-    if not os.path.exists(os.path.join(appdata_path, "RLBot", "Dojo", "Playlists")):
-        os.makedirs(os.path.join(appdata_path, "RLBot", "Dojo", "Playlists"))
-    return os.path.join(appdata_path, "RLBot", "Dojo", "Playlists")
+    path = os.path.join(appdata_path, "RLDojo", "Playlists")
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path

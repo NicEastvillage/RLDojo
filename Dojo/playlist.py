@@ -24,7 +24,7 @@ Rule Zero Feature:
 
 from enum import Enum
 import numpy as np
-from scenario import OffensiveMode, DefensiveMode
+from scenario_gen import OffensiveMode, DefensiveMode
 from pydantic import BaseModel, Field, ValidationError
 from typing import List, Optional, Tuple
 from custom_scenario import CustomScenario
@@ -88,31 +88,31 @@ class Playlist(BaseModel):
         if not renderer:
             return
         
-        renderer.draw_rect_2d(EXTERNAL_MENU_START_X, EXTERNAL_MENU_START_Y, EXTERNAL_MENU_WIDTH, EXTERNAL_MENU_HEIGHT, False, renderer.black())
+        renderer.draw_rect_2d(EXTERNAL_MENU_START_X, EXTERNAL_MENU_START_Y, EXTERNAL_MENU_WIDTH, EXTERNAL_MENU_HEIGHT, renderer.black)
         print_start_x = EXTERNAL_MENU_START_X + 10
         print_start_y = EXTERNAL_MENU_START_Y + 10
-        text_color = renderer.white()
-        renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, "Playlist Details", text_color)
+        text_color = renderer.white
+        renderer.draw_string_2d("Playlist Details", print_start_x, print_start_y, 1, text_color)
         print_start_y += 20
-        renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"Name: {self.name}", text_color)
+        renderer.draw_string_2d(f"Name: {self.name}", print_start_x, print_start_y, 1, text_color)
         print_start_y += 20
         num_scenarios = len(self.scenarios)
         num_scenarios_text = str(num_scenarios)
-        renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"Scenarios: {num_scenarios_text}", text_color)
+        renderer.draw_string_2d(f"Scenarios: {num_scenarios_text}", print_start_x, print_start_y, 1, text_color)
         print_start_y += 20
         for scenario in self.scenarios:
-            renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"{scenario.offensive_mode.name} vs {scenario.defensive_mode.name}", text_color)
+            renderer.draw_string_2d(f"{scenario.offensive_mode.name} vs {scenario.defensive_mode.name}", print_start_x, print_start_y, 1, text_color)
             print_start_y += 20
         if self.settings:
-            renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"Boost Range: {self.settings.boost_range[0]}-{self.settings.boost_range[1]}", text_color)
+            renderer.draw_string_2d(f"Boost Range: {self.settings.boost_range[0]}-{self.settings.boost_range[1]}", print_start_x, print_start_y, 1, text_color)
             print_start_y += 20
-            renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"Timeout: {self.settings.timeout}s", text_color)
+            renderer.draw_string_2d(f"Timeout: {self.settings.timeout}s", print_start_x, print_start_y, 1, text_color)
             print_start_y += 20
         if self.custom_scenarios:
-            renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"Custom Scenarios: {len(self.custom_scenarios)}", text_color)
+            renderer.draw_string_2d(f"Custom Scenarios: {len(self.custom_scenarios)}", print_start_x, print_start_y, 1, text_color)
             print_start_y += 20
             for scenario in self.custom_scenarios:
-                renderer.draw_string_2d(print_start_x, print_start_y, 1, 1, f"{scenario.name}", text_color)
+                renderer.draw_string_2d(f"{scenario.name}", print_start_x, print_start_y, 1, text_color)
                 print_start_y += 20
 
 class PlaylistRegistry:

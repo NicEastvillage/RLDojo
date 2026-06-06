@@ -1,6 +1,6 @@
 # Game field constants
 SIDE_WALL = 4096
-BACK_WALL = -5120  # From perspective of default scenario - blue team defending
+BACK_WALL = 5120
 GOAL_WIDTH = 893
 GOAL_DEPTH = 880
 CORNER_OFFSET = 1152

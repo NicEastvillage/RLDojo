@@ -1,0 +1,7 @@
+numpy~=2.4.6
+keyboard~=0.13.5
+rlbot>=2.0.0b52
+pygame~=2.6.1
+pydantic~=2.13.4
+matplotlib~=3.10.9
+pyinstaller~=6.20.0

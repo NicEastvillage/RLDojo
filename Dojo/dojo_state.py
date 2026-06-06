@@ -1,7 +1,9 @@
 from enum import Enum
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional
-from scenario import Scenario, OffensiveMode, DefensiveMode
+
+from scenario import ScenarioModel
+from scenario_gen import OffensiveMode, DefensiveMode
 from race_record import RaceRecord, RaceRecords
 
 
@@ -56,10 +58,8 @@ class RacePhase(Enum):
 
 
 class CarIndex(Enum):
-    BLUE = 0
-    ORANGE = 1
-    HUMAN = 0
-    BOT = 1
+    BOT = 0
+    HUMAN = 1
 
 
 CUSTOM_MODES = [
@@ -70,8 +70,8 @@ CUSTOM_MODES = [
 
 
 @dataclass
-class DojoGameState:
-    """Centralized game state for the Dojo application"""
+class DojoState:
+    """Centralized state for the Dojo application"""
     # Game mode and phase
     gym_mode: GymMode = GymMode.SCENARIO
     game_phase: ScenarioPhase = ScenarioPhase.SETUP
@@ -80,11 +80,12 @@ class DojoGameState:
     # Scenario settings
     offensive_mode: OffensiveMode = OffensiveMode.POSSESSION
     defensive_mode: DefensiveMode = DefensiveMode.NEAR_SHADOW
-    player_offense: bool = True
+    human_offense: bool = True
+    human_team: int = 0
     freeze_scenario: bool = False
     freeze_scenario_index: int = 0
     enable_timeouts: bool = True
-    scenario_history: List[Scenario] = None
+    scenario_history: List[ScenarioModel] = field(default_factory=list)
 
     # Scenario controls
     manual_reset_requested: bool = False  # Scenario should reset on next tick (flag should be set to False after)
@@ -110,16 +111,12 @@ class DojoGameState:
     race_mode_records: Optional[RaceRecords] = None
     
     # Internal state tracking
-    scoreDiff_prev: int = 0
-    score_human_prev: int = 0
-    score_bot_prev: int = 0
+    team_that_scored_last_tick: Optional[int] = None
+    score_blue_prev: int = 0
+    score_orange_prev: int = 0
     prev_ticks: int = 0
     ticks: int = 0
     paused: bool = False
-    
-    def __post_init__(self):
-        if self.scenario_history is None:
-            self.scenario_history = []
     
     def clear_score(self):
         """Reset both human and bot scores to zero"""
@@ -128,7 +125,7 @@ class DojoGameState:
     
     def toggle_mirror(self):
         """Toggle the player role state"""
-        self.player_offense = not self.player_offense
+        self.human_offense = not self.human_offense
     
     def toggle_freeze_scenario(self):
         """Toggle scenario freezing"""

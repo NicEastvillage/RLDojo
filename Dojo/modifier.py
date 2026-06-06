@@ -1,11 +1,8 @@
 import numpy as np
-from enum import Enum
-import keyboard
 
-from rlbot.agents.base_script import BaseScript
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
-from scenario import Scenario, OffensiveMode, DefensiveMode
 import utils
+from scenario import Vec3, RotatorModel
+
 
 #######################################
 ### Custom Sandbox Object Modifiers ###
@@ -58,7 +55,7 @@ def modify_pitch(object_to_modify, increase):
             pitch -= (0.125 * np.pi)
 
         # Convert back to velocity components
-        object_to_modify.physics.velocity = utils.get_velocity_from_rotation(Rotator(yaw=yaw, pitch=pitch, roll=0), 1000, 2000)
+        object_to_modify.physics.velocity = utils.get_velocity_from_rotation(RotatorModel(yaw=yaw, pitch=pitch, roll=0), 1000, 2000)
     
 
 def modify_yaw(object_to_modify, increase):
@@ -91,7 +88,7 @@ def modify_yaw(object_to_modify, increase):
             yaw -= (0.125 * np.pi)
 
         # Convert back to velocity components
-        object_to_modify.physics.velocity = utils.get_velocity_from_rotation(Rotator(yaw=yaw, pitch=pitch, roll=0), 1000, 2000)
+        object_to_modify.physics.velocity = utils.get_velocity_from_rotation(RotatorModel(yaw=yaw, pitch=pitch, roll=0), 1000, 2000)
 
 def modify_roll(object_to_modify, increase):
     if utils.hasattrdeep(object_to_modify, 'physics', 'rotation', 'roll'):
@@ -119,7 +116,7 @@ def modify_velocity(object_to_modify, velocity_percentage_delta):
     y += y * velocity_percentage_delta
     z += z * velocity_percentage_delta
 
-    object_to_modify.physics.velocity = Vector3(x, y, z)
+    object_to_modify.physics.velocity = Vec3(x, y, z)
 
 def modify_boost(object_to_modify, increase):
     if utils.hasattrdeep(object_to_modify, 'boost_amount'):

@@ -283,7 +283,7 @@ class CustomHotkeyManager:
     def get_hotkey_config_path(self) -> str:
         """Get the path to the hotkey configuration file"""
         appdata_path = os.path.expandvars("%APPDATA%")
-        config_dir = os.path.join(appdata_path, "RLBot", "Dojo")
+        config_dir = os.path.join(appdata_path, "RLDojo")
         os.makedirs(config_dir, exist_ok=True)
         return os.path.join(config_dir, "hotkey_bindings.json")
 
