@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from scenario import Scenario, OffensiveMode, DefensiveMode
+from scenario_gen import Scenario, OffensiveMode, DefensiveMode
 
 # You can use this __name__ == '__main__' thing to ensure that the script doesn't start accidentally if you
 # merely reference its module from somewhere

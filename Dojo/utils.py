@@ -1,12 +1,16 @@
 import numpy as np
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
 
-SIDE_WALL=4096
-# From perspective of default scenario - blue team defending
-BLUE_WALL=-5120
-ORANGE_WALL=5120
+from scenario import Vec3
 
-BACK_WALL=BLUE_WALL
+BALL_RADIUS = 91.25
+
+SIDE_WALL = 4096
+DIAG_WALL = 8064
+BACK_WALL = 5120
+BLUE_WALL = -BACK_WALL
+ORANGE_WALL = BACK_WALL
+
+CEILING = 2044
 
 def hasattrdeep(obj, *names):
     for name in names:
@@ -14,13 +18,6 @@ def hasattrdeep(obj, *names):
             return False
        obj = getattr(obj, name)
     return True
-
-
-def add_vector3(vector1, vector2):
-    return Vector3(vector1.x + vector2.x, vector1.y + vector2.y, vector1.z + vector2.z)
-
-def vector3_to_list(vector3):
-    return [vector3.x, vector3.y, vector3.z]
 
 
 def get_play_yaw():
@@ -53,7 +50,7 @@ def get_velocity_from_yaw(yaw, min_velocity, max_velocity):
     velocity_factor = random_between(min_velocity, max_velocity)
     velocity_x = velocity_factor * np.cos(yaw)
     velocity_y = velocity_factor * np.sin(yaw)
-    return Vector3(velocity_x, velocity_y, 0)
+    return Vec3(velocity_x, velocity_y, 0)
 
 # Rotation consists of pitch, yaw, roll
 # Yaw is on the x/y plane
@@ -70,7 +67,7 @@ def get_velocity_from_rotation(rotation, min_velocity, max_velocity):
     velocity_x = (velocity_factor * np.cos(yaw)) * np.cos(pitch)
     velocity_y = (velocity_factor * np.sin(yaw)) * np.cos(pitch)
     velocity_z = velocity_factor * np.sin(pitch)
-    return Vector3(velocity_x, velocity_y, velocity_z)
+    return Vec3(velocity_x, velocity_y, velocity_z)
 
 def sanity_check_objects(objects):
     '''If any of the objects have been placed outside of the map, move them to the nearest edge of the map'''
@@ -80,14 +77,14 @@ def sanity_check_objects(objects):
             object.physics.location.x = -(SIDE_WALL-100)
         elif object.physics.location.x > SIDE_WALL:
             object.physics.location.x = SIDE_WALL-100
-        if object.physics.location.y > -BACK_WALL:
+        if object.physics.location.y > ORANGE_WALL:
             # Make an exception if in the goal, which is between -/+893 x
             if not (object.physics.location.x > -893 and object.physics.location.x < 893):
-                object.physics.location.y = -(BACK_WALL+100)
-        elif object.physics.location.y < BACK_WALL:
+                object.physics.location.y = ORANGE_WALL - 100
+        elif object.physics.location.y < BLUE_WALL:
             # Make an exception if in the goal, which is between -/+893 x
             if not (object.physics.location.x > -893 and object.physics.location.x < 893):
-                object.physics.location.y = BACK_WALL+100
+                object.physics.location.y = BLUE_WALL + 100
 
         # Also account for corners, which is going to suck
         # Corners start 1152 units in from the side walls and back walls

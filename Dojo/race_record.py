@@ -22,9 +22,10 @@ class RaceRecords(BaseModel):
 
 def _get_records_base_path():
     appdata_path = os.path.expandvars("%APPDATA%")
-    if not os.path.exists(os.path.join(appdata_path, "RLBot", "Dojo")):
-        os.makedirs(os.path.join(appdata_path, "RLBot", "Dojo"))
-    return os.path.join(appdata_path, "RLBot", "Dojo")
+    path = os.path.join(appdata_path, "RLDojo")
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
 
 def _get_race_records_path():
     return os.path.join(_get_records_base_path(), "race_records.json")

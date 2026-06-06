@@ -1,11 +1,3 @@
-import numpy as np
-from enum import Enum
-import keyboard
-
-from rlbot.agents.base_script import BaseScript
-from rlbot.utils.game_state_util import GameState, BallState, CarState, Physics, Vector3, Rotator, GameInfoState
-from scenario import Scenario, OffensiveMode, DefensiveMode
-import utils
 
 units_x_per_char = 11
 units_y_per_line = 40
@@ -317,18 +309,17 @@ class MenuRenderer():
             self.render_function()
             return
         
-        self.renderer.begin_rendering()
-        self.renderer.draw_rect_2d(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT, False, self.renderer.black())
+        self.renderer.draw_rect_2d(MENU_START_X, MENU_START_Y, MENU_WIDTH, MENU_HEIGHT, self.renderer.black)
         print_x = MENU_START_X + 10
         print_y = MENU_START_Y + 10
-        text_color = self.renderer.white()
+        text_color = self.renderer.white
 
         # Render the list of options, if this menu isn't a text input
         if not self.is_text_input_menu:
             # If this menu has an external render function, call it in addition to the normal rendering
             if self.render_function:
                 self.render_function()
-                
+
             for column in range(self.columns):
                 print_x = MENU_START_X + COLUMN_WIDTH * column + 10
                 print_y = MENU_START_Y + 10
@@ -352,18 +343,19 @@ class MenuRenderer():
                     
                     # If header, draw a smaller rectangle
                     if element.header:
-                        self.renderer.draw_rect_2d(print_x, print_y - 10, len(element.text) * units_x_per_char, units_y_per_line, False, self.renderer.blue())
+                        self.renderer.draw_rect_2d(print_x, print_y - 10, len(element.text) * units_x_per_char, units_y_per_line, self.renderer.blue)
+
                     # If selected, draw a rectangle around the element
                     if element.selected:
-                        self.renderer.draw_rect_2d(print_x, print_y - 10, len(text) * units_x_per_char, units_y_per_line, False, self.renderer.white())
-                        color = self.renderer.black()
+                        self.renderer.draw_rect_2d(print_x, print_y - 10, len(text) * units_x_per_char, units_y_per_line, self.renderer.white)
+                        color = self.renderer.black
                     else:
                         color = text_color
                     # If header, draw text in green
                     if element.header:
-                        self.renderer.draw_string_2d(print_x + 5, print_y, 1, 1, element.text, self.renderer.white())
+                        self.renderer.draw_string_2d(element.text, print_x + 5, print_y, 1, self.renderer.white)
                     else:
-                        self.renderer.draw_string_2d(print_x + 5, print_y, 1, 1, text, color)
+                        self.renderer.draw_string_2d(text, print_x + 5, print_y, 1, color)
                     print_y += units_y_per_line
                 
                 # Draw scroll indicators if needed
@@ -372,26 +364,27 @@ class MenuRenderer():
                     if self.scroll_offset[column] > 0:
                         indicator_x = print_x + COLUMN_WIDTH - 30
                         indicator_y = MENU_START_Y + 10
-                        self.renderer.draw_string_2d(indicator_x, indicator_y, 1, 1, "↑", self.renderer.white())
+                        self.renderer.draw_string_2d("↑", indicator_x, indicator_y, 1, self.renderer.white)
                     
                     # Draw scroll down indicator
                     if end_index < len(self.elements[column]):
                         indicator_x = print_x + COLUMN_WIDTH - 30
                         indicator_y = MENU_START_Y + MENU_HEIGHT - 30
-                        self.renderer.draw_string_2d(indicator_x, indicator_y, 1, 1, "↓", self.renderer.white())
+                        self.renderer.draw_string_2d("↓", indicator_x, indicator_y, 1, self.renderer.white)
         else:
             # Prompt user to enter a name for the entity
-            self.renderer.draw_string_2d(MENU_START_X + 10, MENU_START_Y + 10, 1, 1, "Enter a name:", self.renderer.white())
+            self.renderer.draw_string_2d("Enter a name:", MENU_START_X + 10, MENU_START_Y + 10, 1, self.renderer.white)
             
             # Display user's current input
-            self.renderer.draw_string_2d(MENU_START_X + 10, MENU_START_Y + 30, 1, 1, self.text_input_value, self.renderer.white())
+            self.renderer.draw_string_2d(self.text_input_value, MENU_START_X + 10, MENU_START_Y + 30, 1, self.renderer.white)
             
             # Show a cursor
-            self.renderer.draw_rect_2d(MENU_START_X + 10 + len(self.text_input_value) * units_x_per_char, MENU_START_Y + 30, 2, units_y_per_line, False, self.renderer.white())
+            self.renderer.draw_rect_2d(MENU_START_X + 10 + len(self.text_input_value) * units_x_per_char, MENU_START_Y + 30, 2, units_y_per_line, self.renderer.white)
 
         instruction_text = "Press 'b' to go back" if not self.is_root else "Press 'm' to exit menu"
         instruction_x = MENU_START_X + (MENU_WIDTH - len(instruction_text) * units_x_per_char) // 2
         instruction_y = MENU_START_Y + MENU_HEIGHT - 30
-        self.renderer.draw_string_2d(instruction_x, instruction_y, 1, 1, instruction_text, self.renderer.white())
-        
-        self.renderer.end_rendering()
+        self.renderer.draw_string_2d(instruction_text, instruction_x, instruction_y, 1, self.renderer.white)
+
+    def dont_render_menu(self):
+        self.renderer.clear_render_group("menu")

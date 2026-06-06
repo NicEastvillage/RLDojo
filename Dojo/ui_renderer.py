@@ -1,17 +1,19 @@
 from typing import Optional
-from game_state import DojoGameState, GymMode, ScenarioPhase, CUSTOM_MODES
+
+from dojo_state import DojoState, GymMode, ScenarioPhase, CUSTOM_MODES
 from constants import (
     SCORE_BOX_START_X, SCORE_BOX_START_Y, SCORE_BOX_WIDTH, SCORE_BOX_HEIGHT,
     CUSTOM_MODE_MENU_START_X, CUSTOM_MODE_MENU_START_Y, CUSTOM_MODE_MENU_WIDTH, CUSTOM_MODE_MENU_HEIGHT,
     CONTROLS_MENU_WIDTH, CONTROLS_MENU_HEIGHT
 )
 import utils
+from scenario import ScenarioModel
 
 
 class UIRenderer:
     """Handles all UI rendering for the Dojo application"""
     
-    def __init__(self, renderer, game_state: DojoGameState):
+    def __init__(self, renderer, game_state: DojoState):
         self.renderer = renderer
         self.game_state = game_state
     
@@ -23,17 +25,14 @@ class UIRenderer:
         # Draw initial UI while components are initializing.
         # Especially HotkeyManager / Pygame can randomly take longer to initialize while blocking the main thread.
         if not self.game_state.dojo_components_initialized:
-            self.renderer.begin_rendering()
             header_text = "Welcome to the Dojo."
-            self.renderer.draw_string_2d(20, 50, 1, 1, header_text, self.renderer.yellow())
+            self.renderer.draw_string_2d(header_text, 20, 50, 1, self.renderer.yellow)
             warning_text = ("Waiting for components to initialize... "
                             "\nShould take a few seconds. "
                             "\nIf not, try waiting for up to a minute or restarting your PC.")
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 10,
-                1, 1, warning_text, self.renderer.yellow()
+                warning_text, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 10, 1, self.renderer.yellow
             )
-            self.renderer.end_rendering()
             return
 
         minutes, seconds = self.game_state.get_time_since_start()
@@ -51,7 +50,7 @@ class UIRenderer:
             freeze_scenario_enabled = f"Scenario frozen: {self.game_state.freeze_scenario}"
             offensive_mode_name = f"Offensive Mode: {self.game_state.offensive_mode.name}"
             defensive_mode_name = f"Defensive Mode: {self.game_state.defensive_mode.name}"
-            player_role_name = "offense" if self.game_state.player_offense else "defense"
+            player_role_name = "offense" if self.game_state.human_offense else "defense"
             player_role_string = f"Player Role: {player_role_name}"
             previous_record = ""
             game_phase_name = f"Game Phase: {self.game_state.game_phase.name}"
@@ -65,84 +64,62 @@ class UIRenderer:
                 prev_seconds = int(previous_record_data % 60)
                 previous_record = f"Previous Record: {prev_minutes}:{prev_seconds:02d}"
         
-        # Render UI elements
-        self.renderer.begin_rendering()
-        
+        # === Render UI elements
         # Main instruction text
-        self.renderer.draw_string_2d(20, 50, 1, 1, text, self.renderer.yellow())
+        self.renderer.draw_string_2d(text, 20, 50, 1, self.renderer.yellow)
         
         # Score box content
         self.renderer.draw_string_2d(
-            SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 10, 
-            1, 1, scores, self.renderer.white()
+            scores, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 10,
+            1, self.renderer.white
         )
         self.renderer.draw_string_2d(
-            SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 40, 
-            1, 1, total_score, self.renderer.white()
+            total_score, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 40,
+            1, self.renderer.white
         )
         self.renderer.draw_string_2d(
-            SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 70, 
-            1, 1, time_since_start, self.renderer.white()
+            time_since_start, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 70,
+            1, self.renderer.white
         )
         self.renderer.draw_string_2d(
-            SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 100, 
-            1, 1, previous_record, self.renderer.white()
+            previous_record, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 100,
+            1, self.renderer.white
         )
         if self.game_state.gym_mode == GymMode.SCENARIO:
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 130, 
-                1, 1, offensive_mode_name, self.renderer.white()
+                offensive_mode_name, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 130,
+                1, self.renderer.white
             )
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 160, 
-                1, 1, defensive_mode_name, self.renderer.white()
+                defensive_mode_name, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 160,
+                1, self.renderer.white
             )
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 190, 
-                1, 1, player_role_string, self.renderer.white()
+                player_role_string, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 190,
+                1, self.renderer.white
             )
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 220,
-                1, 1, game_phase_name, self.renderer.white()
+                game_phase_name, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 220,
+                1, self.renderer.white
             )
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 250,
-                1, 1, timeout_enabled, self.renderer.white()
+                timeout_enabled, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 250,
+                1, self.renderer.white
             )
             self.renderer.draw_string_2d(
-                SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 280,
-                1, 1, freeze_scenario_enabled, self.renderer.white()
+                freeze_scenario_enabled, SCORE_BOX_START_X + 10, SCORE_BOX_START_Y + 280,
+                1, self.renderer.white
             )
-        self.renderer.end_rendering()
+
     
-   
-    
-    def render_velocity_vectors(self, rlbot_game_state):
+    def render_velocity_vectors(self, scenario: ScenarioModel):
         """Render velocity vectors for all objects in custom mode"""
-        if not rlbot_game_state:
-            return
-        
-        from game_state import CarIndex
-        
-        # Human car velocity vector
-        if CarIndex.HUMAN.value in rlbot_game_state.cars:
-            human_car = rlbot_game_state.cars[CarIndex.HUMAN.value]
-            human_start = utils.vector3_to_list(human_car.physics.location)
-            human_end_vector = utils.add_vector3(human_car.physics.location, human_car.physics.velocity)
-            human_end = utils.vector3_to_list(human_end_vector)
-            self.renderer.draw_line_3d(human_start, human_end, self.renderer.white())
-        
-        # Ball velocity vector
-        if rlbot_game_state.ball:
-            ball_start = utils.vector3_to_list(rlbot_game_state.ball.physics.location)
-            ball_end_vector = utils.add_vector3(rlbot_game_state.ball.physics.location, rlbot_game_state.ball.physics.velocity)
-            ball_end = utils.vector3_to_list(ball_end_vector)
-            self.renderer.draw_line_3d(ball_start, ball_end, self.renderer.white())
-        
-        # Bot car velocity vector
-        if CarIndex.BOT.value in rlbot_game_state.cars:
-            bot_car = rlbot_game_state.cars[CarIndex.BOT.value]
-            bot_start = utils.vector3_to_list(bot_car.physics.location)
-            bot_end_vector = utils.add_vector3(bot_car.physics.location, bot_car.physics.velocity)
-            bot_end = utils.vector3_to_list(bot_end_vector)
-            self.renderer.draw_line_3d(bot_start, bot_end, self.renderer.white()) 
+
+        physics = [
+            scenario.offensive_car_state.physics,
+            scenario.defensive_car_state.physics,
+            scenario.ball_state.physics,
+        ]
+
+        for phys in physics:
+            self.renderer.draw_line_3d(phys.location, phys.location + phys.velocity, self.renderer.white)
